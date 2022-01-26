@@ -133,7 +133,7 @@ if args.outfiles:
         file.close()
     if len(listableHosts) > 0:
         with open(listableFile,'w') as file:
-            for host in adminHosts:
+            for host in listableHosts:
                 for share in host['shares']:
                     file.write('\\\\{}\\{}\n'.format(host['host'],share))
         file.close()

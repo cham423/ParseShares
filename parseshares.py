@@ -1,17 +1,30 @@
 #! /usr/bin/env python3
 import argparse
+import uuid
 
 parser = argparse.ArgumentParser(description='Parse SharpShares Output')
 parser.add_argument('-f',dest='file', action='store', required=True, help='path to sharpshares output in a file')
+parser.add_argument('-outfiles',dest='outfiles', action='store_true',help='write paths to output files (auto-generated names)')
 parser.add_argument('-p',dest='printpaths', action='store_true', help='print share paths in \\\\host\\share format')
-parser.add_argument('-l',dest='printlist', action='store_true', help='list shares in prioritized, human readable format')
+parser.add_argument('-l',dest='printlist', action='store_true', help='list shares in prioritized, human readable format (on by default)')
+parser.add_argument('-iloveprinters',dest='printers', action='store_true', help='show print$ shares')
+
 parser.set_defaults(printlist=True)
 args = parser.parse_args()
 
+# file for infile
 file = args.file
 
+# files for outfiles
+fileSig = str(uuid.uuid4())[:8]
+daFile = 'parsed_da_{}'.format(fileSig)
+adminFile = 'parsed_admin_{}'.format(fileSig)
+listableFile = 'parsed_listable_{}'.format(fileSig)
+dcFile = 'parsed_dc_{}'.format(fileSig)
+sccmFile = 'parsed_sccm_{}'.format(fileSig)
+
 # define shares to look for
-ignoreShares = ['print$', 'prnproc$']
+printerShares = ['print$', 'prnproc$']
 adminShares = ['C$','ADMIN$']
 dcShares = ['NETLOGON', 'SYSVOL']
 sccmShares = ['REMINST', 'SCCMContentLib$', 'SMSPKGD$', 'SMSSIG$']
@@ -35,8 +48,11 @@ with open(file,'r') as file:
             if 'Listable Shares' in line:
                 shareList = next(file).rstrip('\n').split('\t')
                 for share in shareList:
-                    if share != '' and share not in ignoreShares:
-                        shares.append(share)
+                    if share != '':
+                        if args.printers:
+                            shares.append(share)
+                        elif share not in printerShares:
+                            shares.append(share)
                 if len(shares) > 0:
                     for test in adminShares:
                         if test in shares:
@@ -102,3 +118,34 @@ if args.printpaths:
     for host in sccmHosts:
         for share in host['shares']:
             print('\\\\{}\\{}'.format(host['host'],share))
+if args.outfiles:
+    if len(daHosts) > 0:
+        with open(daFile,'w') as file:
+            for host in daHosts:
+                for share in host['shares']:
+                    file.write('\\\\{}\\{}\n'.format(host['host'],share))
+        file.close()
+    if len(adminHosts) > 0:
+        with open(adminFile,'w') as file:
+            for host in adminHosts:
+                for share in host['shares']:
+                    file.write('\\\\{}\\{}\n'.format(host['host'],share))
+        file.close()
+    if len(listableHosts) > 0:
+        with open(listableFile,'w') as file:
+            for host in adminHosts:
+                for share in host['shares']:
+                    file.write('\\\\{}\\{}\n'.format(host['host'],share))
+        file.close()
+    if len(dcHosts) > 0:
+        with open(dcFile,'w') as file:
+            for host in dcHosts:
+                for share in host['shares']:
+                    file.write('\\\\{}\\{}\n'.format(host['host'],share))
+        file.close()
+    if len(sccmHosts) > 0:
+        with open(sccmFile,'w') as file:
+            for host in sccmHosts:
+                for share in host['shares']:
+                    file.write('\\\\{}\\{}\n'.format(host['host'],share))
+        file.close()
